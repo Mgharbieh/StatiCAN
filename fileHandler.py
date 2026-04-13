@@ -38,9 +38,10 @@ class FileHandler: ### NEED TO ADD FUNCTION TO POPULATE LIST WITH SAVED FILES ##
                 "highContrast": 0,
                 "aiAgent": 0
             }
+            self.apiKey = ""
             with open(config_path, 'w', encoding='utf-8') as file:
                 json.dump(self.config, file, indent=4)
-            return self.config
+            return self.config, self.apiKey
 
     def updateConfig(self, key, value):
         self.config[key] = value
