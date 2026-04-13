@@ -1,16 +1,20 @@
-<h1 align="center">
-  <br>
-  <a href="StatiCAN"><img src="https://github.com/Mgharbieh/StatiCAN/blob/main/ui/assets/statiCAN.png" alt="StatiCAN" width="1250"></a>
-  <br>
-</h1>
-
-<h4 align="center">Open source tool for CAN implementation error detection and correction.</h4>
+<h4 align="center">Stati<span style="color:red">CAN</span> - An open source tool for CAN implementation error detection and correction.</h4>
 
 <p align="center">
   <a href="#key-features">Key Features</a> •
     <a href="#setup-instructions">Setup Instructions</a> •
   <a href="#how-to-use">How to Use</a> 
 </p>
+
+# 
+
+<h1 align="center">
+  <br>
+  <a href="StatiCAN"><img src="https://github.com/Mgharbieh/StatiCAN/blob/main/.github/example_screenshot.png" alt="StatiCAN" width="1250"></a>
+
+  
+  <br>
+</h1>
 
 ## Key Features
 * Find issues in CAN protocol implementation for Arduino-based projects
@@ -38,7 +42,7 @@
 * If AI solutions are enabled, select an issue from the right pane to generate a potential fix for the solution. Problematic lines of code are visible on the source code pane to the left.
 ##
 
-#### [This project is built upon prior research done by Michael Gharbieh, Dr. Foyzul Hassan, and Dr. Bruce Maxim](https://github.com/Mgharbieh/CAN_bus_research)
+#### [StatiCAN is built upon prior research done by Michael Gharbieh, Dr. Foyzul Hassan, and Dr. Bruce Maxim](https://github.com/Mgharbieh/CAN_bus_research)
 
 ## 
   <br>
