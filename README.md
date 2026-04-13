@@ -36,6 +36,9 @@
 * A card will appear on the pane to the right.  Wait for the file to finish being scanned.
 * Select the card to view potential issues.  By default, AI suggestions are turned off.  This can be changed in settings.
 * If AI solutions are enabled, select an issue from the right pane to generate a potential fix for the solution. Problematic lines of code are visible on the source code pane to the left.
+##
+
+#### [This project is built upon prior research done by Michael Gharbieh, Dr. Foyzul Hassan, and Dr. Bruce Maxim](https://github.com/Mgharbieh/CAN_bus_research)
 
 ## 
   <br>
