@@ -1,0 +1,499 @@
+import tree_sitter as TreeSitter
+
+import tree_sitter_cpp as _CPP
+CPP_LANGUAGE = TreeSitter.Language(_CPP.language())
+
+class RTRBitChecker:
+    def __init__(self):
+        self.msgList = []
+        self.resultList = []
+        self.lineNums = []
+    
+    def _reset(self):
+        self.msgList = []
+        self.resultList = []
+        self.lineNums = []
+
+    def _checkRTRMode(self, root):
+
+        rtrQuery0 = '''
+        (function_definition
+            body: (compound_statement
+                [(expression_statement
+                    (assignment_expression
+                        (field_expression
+                            (identifier) @fd_id
+                            (field_identifier) @func_name
+                        ) @fd_ex
+                        (binary_expression 
+                            (number_literal) @ids
+                            (identifier) @flag
+                        ) @b_ex
+                    ) @a_ex
+                )
+                (expression_statement
+                    (assignment_expression
+                        (field_expression
+                            (identifier) @fd_id
+                            (field_identifier) @func_name
+                        ) @fd_ex
+                        ;(number_literal) @ids
+                    ) @a_ex
+                )]
+            ) @func_body 
+        )
+
+        (#match? @fd_id "^[cC][aA][nN](\\d*)\\.$")
+        '''
+
+        rtrQuery1 = '''
+        (function_definition
+            body: (compound_statement
+                [(expression_statement
+                    (call_expression
+                        (field_expression
+                            (identifier) @obj (#match? @obj "[cC][aA][nN](\\d*)")
+                            (field_identifier) @fd_id (#match? @fd_id "[Ss]endMsgBuf")
+                        ) @fd_expr
+                        (argument_list) @arg_list
+                    ) @id_call_expr
+                    (#not-match? @id_call_expr "0x[0-9a-fA-F]{1,3}")
+                    (#not-match? @id_call_expr "0x[0-9a-fA-F]{1,8}")
+                    (#not-match? @id_call_expr "0x40000000") 
+                )
+                (expression_statement
+                    (assignment_expression
+                        (call_expression
+                            (field_expression
+                                (identifier) @obj (#match? @obj "[cC][aA][nN](\\d*)")
+                                (field_identifier) @fd_id (#match? @fd_id "[Ss]endMsgBuf")
+                            ) @fd_expr
+                            (argument_list) @arg_list
+                        ) @id_call_expr
+                        (#not-match? @id_call_expr "0x[0-9a-fA-F]{1,3}")
+                        (#not-match? @id_call_expr "0x[0-9a-fA-F]{1,8}")
+                        (#not-match? @id_call_expr "0x40000000")
+                    )
+                )
+                (declaration
+                    (init_declarator
+                        (call_expression
+                            (field_expression
+                                (identifier) @obj (#match? @obj "[cC][aA][nN](\\d*)")
+                                (field_identifier) @fd_id (#match? @fd_id "[Ss]endMsgBuf")
+                            ) @fd_expr
+                            (argument_list) @arg_list
+                        ) @id_call_expr
+                        (#not-match? @id_call_expr "0x40000000") 
+                    )
+                )
+                (expression_statement
+                    (call_expression
+                        (field_expression) @fd_expr 
+                        (argument_list) @arg_list
+                    ) @call_expr
+                    (#match? @call_expr "0x40000000") 
+                )
+                (declaration
+                    (init_declarator
+                        (call_expression
+                            (field_expression) @fd_expr 
+                            (argument_list) @arg_list
+                        ) @call_expr
+                        (#match? @call_expr "0x40000000") 
+                    )
+                )]
+            ) @func_body 
+        )
+
+        (#match? @fd_expr "^[cC][aA][nN](\d*)\.[Ss]endMsgBuf$")
+        '''
+
+        rtrQuery2 = '''
+        (function_definition
+            body: (compound_statement
+                (_) @sendBuf         
+            ) @func_body 
+            (#match? @sendBuf "[cC][aA][nN](\\d*)\\.[Ss]endMsgBuf") 
+        )
+        '''
+
+        rtrQuery3 = '''
+        (function_definition
+            body: (compound_statement
+                [(expression_statement
+                    (assignment_expression
+                        (field_expression
+                            (identifier) @id_3
+                            (field_identifier) @fd_id_3 
+                                (#match? @fd_id_3 "rtr")
+                        ) @rtr_fd_3
+                        (number_literal) @rtr_mode_3
+                    )
+                ) @rtr_expr_3
+                (expression_statement
+                    (assignment_expression
+                        (field_expression
+                            (identifier) @id_3
+                            (field_identifier) @fd_id_3 
+                                (#match? @fd_id_3 "rtr")
+                        ) @rtr_fd_3
+                        (true) @rtr_mode_3
+                    )
+                ) @rtr_expr_3
+                (expression_statement
+                    (assignment_expression
+                        (field_expression
+                            (identifier) @id_3
+                            (field_identifier) @fd_id_3 
+                                (#match? @fd_id_3 "rtr")
+                        ) @rtr_fd_3
+                        (false) @rtr_mode_3
+                    )
+                ) @rtr_expr_3]
+                (expression_statement
+                    (assignment_expression
+                        (field_expression
+                            (identifier) 
+                            (field_identifier) @dlc_id_3 
+                                (#match? @dlc_id_3 "length")
+                        ) @dlc_fd_3
+                        (number_literal) @dlc_3
+                    ) 
+                ) @dlc_expr_3
+            ) @func_body
+        )
+        '''
+
+        QUERY_LIST = [rtrQuery3, rtrQuery0, rtrQuery1, rtrQuery2]
+
+        for rtrQuery in QUERY_LIST:
+            query = TreeSitter.Query(CPP_LANGUAGE, rtrQuery)
+            queryCursor = TreeSitter.QueryCursor(query)
+            captures = queryCursor.captures(root)
+            if(len(captures) != 0):
+                break
+        
+        functionText = None
+        for cap in captures:
+            if(cap == 'func_body'):
+                startingLineNum = captures[cap][0].start_point.row + 1
+                functionText = captures[cap][0].text.decode()
+                functionText = functionText.splitlines()
+            if cap == 'a_ex':
+                idList = captures[cap]
+                for id in idList:
+                    pair = []
+                    lineString = id.text.decode()
+                    lineNumber = id.start_point.row + 1
+                    for node in id.children:
+                        if(node.type == "binary_expression"):
+                            for field in node.children:
+                                if(field.type == "number_literal" and ('0x' in node.text.decode()) and (node.text.decode() != "0x40000000")):
+                                    pair.insert(0, field.text.decode()) #idList
+                                if(field.type == "identifier"):
+                                    if((field.text.decode() == "CAN_RTR_FLAG") or (field.text.decode() == "0x40000000")):
+                                        pair.insert(1, True) 
+                                        lineString = lineString.split('.')
+                                        pair.insert(2, lineString[0])
+                                        pair.insert(3, lineNumber)
+                                        self.msgList.append(pair.copy())
+                                    else:
+                                        pair.insert(1, False)
+                                        pair.insert(2, None)
+                                        pair.insert(3, lineNumber)
+                                        self.msgList.append(pair.copy())
+
+                for idx in range(0, len(self.msgList)):
+                    msg = self.msgList[idx]
+                    if(len(msg) < 4):
+                        continue
+                    
+                    can_obj = msg[2]
+                    line_number = msg[3]
+
+                    dlcSizeNode = None
+                    if(can_obj != None):
+                        for id in idList:
+                            for node in id.children:
+                                if((node.type == "field_expression") and ('dlc' in node.text.decode()) and (can_obj in node.text.decode())):
+                                    dlcSizeNode = node.next_named_sibling
+                        try:
+                            if(dlcSizeNode.type == "number_literal"):
+                                msg.insert(4, int(dlcSizeNode.text.decode()))
+                        except AttributeError:
+                            msg.insert(4, 0)
+
+                        can_addr = msg[0]
+                        if((can_obj + '(' + can_addr + ") set the RTR bit to high but it has a data length associated with it.") in self.resultList):
+                            continue
+                        elif(msg[4] != 0):
+                            issueStr = can_obj + '(' + can_addr + ") set the RTR bit to high but it has a data length associated with it."
+                            self.resultList.append(issueStr)
+                            self.lineNums.append(line_number)
+
+            if cap == 'sendBuf':
+                sendList = captures[cap]
+                for sendFunc in sendList:
+                    if(sendFunc.type == "comment"):
+                        continue 
+
+                    pair = []
+                    lineNum = sendFunc.start_point.row + 1
+                    lineString = sendFunc.text.decode().strip()
+                    lineString = lineString[0:(len(lineString)-2)]
+                    lineString = lineString.split('(')[1]
+                    args = lineString.split(',')
+                    if(len(args) < 5):
+                        continue
+
+                    try:
+                        args[2] = int(args[2].strip())
+                    except:
+                        rangeStart = lineNum - startingLineNum
+                        for lineIDX in range(rangeStart, 0, -1):
+                            textLine = functionText[lineIDX].lower()
+                            if((args[2].strip() in textLine) and ('=' in textLine)):
+                                rtrBit = textLine.split('=')[1][:-1].strip() 
+                                args[2] = int(rtrBit)
+                                break
+
+                    try:
+                        args[3] = int(args[3].strip())
+                    except:
+                        rangeStart = lineNum - startingLineNum
+                        for lineIDX in range(rangeStart, 0, -1):
+                            textLine = functionText[lineIDX].lower()
+                            if((args[3].strip() in textLine) and ('=' in textLine)):
+                                dlcSize = textLine.split('=')[1].strip().strip(';')
+                                args[3] = int(dlcSize)
+                                break
+
+                    if(args[2] == 1):
+                        pair.append(args[0])
+                        pair.append(True)
+                        pair.append(lineNum)
+                        self.msgList.append(pair.copy())
+
+                        if(args[3] != 0 or (args[4].strip() != 'NULL' and args[4].strip() != 'nullptr')):
+                            if((sendFunc.text.decode() + " set the RTR bit to high but it has a data length associated with it.") in self.resultList):
+                                continue
+                            else:
+                                issueStr = sendFunc.text.decode() + " set the RTR bit to high but it has a data length associated with it."
+                                self.resultList.append(issueStr)
+                    elif(args[2] == 0):
+                        pair.append(args[0])
+                        pair.append(False)
+                        pair.append(lineNum)
+                        self.msgList.append(pair.copy())
+
+            if(cap == "id_call_expr"):
+                for idx in range(0, len(captures[cap])):
+                    sendFunc = captures[cap][idx]
+                    pair = []
+                    lineNum = sendFunc.start_point.row + 1
+                    args = captures['arg_list'][idx].text.decode()
+                    args = args[1:-1]
+                    args = args.split(',')
+                    if(len(args)  == 3):
+                        pair.append(args[0])
+                        rangeStart = lineNum - startingLineNum
+                        for lineIDX in range(rangeStart, 0, -1):
+                            textLine = functionText[lineIDX].lower()
+                            if((args[0].strip() in textLine) and ('=' in textLine) and ('sendmsgbuf' not in textLine.lower())):
+                                if(('//' in textLine) and (textLine.find('//') < textLine.lower().find(args[0].strip()))):
+                                    continue
+                                
+                                
+                                if('0x40000000' in textLine):
+                                    pair.append(textLine.split('=')[1].strip().split('|')[0].strip())
+                                    rtrBit = True
+                                else:
+                                    pair.append(textLine.split('=')[1].strip().strip(';'))
+                                    rtrBit = False
+                                pair.append(rtrBit)
+                                break
+
+                        try:
+                            args[1] = int(args[1].strip())
+                        except:
+                            rangeStart = lineNum - startingLineNum
+                            for lineIDX in range(rangeStart, 0, -1):
+                                textLine = functionText[lineIDX].lower()
+                                if((args[1].strip() in textLine) and ('=' in textLine)):
+                                    dlcSize = textLine.split('=')[1].strip().strip(';')
+                                    args[1] = int(dlcSize)
+                                    break
+                        pair.append(args[1])
+                        pair.append(args[2].strip())
+                        pair.append(sendFunc.text.decode())
+                        pair.append(lineNum)
+                        self.msgList.append(pair.copy())
+                    
+                    elif(len(args) == 5):
+                        args.pop(1)
+                        pair.append(args[0])
+                        rangeStart = lineNum - startingLineNum
+                        for lineIDX in range(rangeStart, 0, -1):
+                            textLine = functionText[lineIDX].lower()
+                            if((args[0].strip() in textLine) and ('=' in textLine) and ('sendmsgbuf' not in textLine.lower())):
+                                if(('//' in textLine) and (textLine.find('//') < textLine.lower().find(args[0].strip()))):
+                                    continue
+            
+                                pair.append(textLine.split('=')[1].strip().strip(';'))
+                            
+                        try:
+                            args[1] = int(args[1].strip())
+                        except:
+                            rangeStart = lineNum - startingLineNum
+                            for lineIDX in range(rangeStart, 0, -1):
+                                textLine = functionText[lineIDX].lower()
+                                if((args[1].strip() in textLine) and ('=' in textLine)):
+                                    rtrBit = textLine.split('=')[1][:-1].strip() 
+                                    args[1] = int(rtrBit)
+                                    break
+
+                        try:
+                            args[2] = int(args[2].strip())
+                        except:
+                            rangeStart = lineNum - startingLineNum
+                            for lineIDX in range(rangeStart, 0, -1):
+                                textLine = functionText[lineIDX].lower()
+                                if((args[2].strip() in textLine) and ('=' in textLine)):
+                                    dlcSize = textLine.split('=')[1].strip().strip(';')
+                                    args[2] = int(dlcSize)
+                                    break
+
+                        if(args[1] == 1):
+                            pair.append(True)
+                        elif(args[1] == 0):
+                            pair.append(False)
+
+                        pair.append(args[2])
+                        pair.append(args[3])
+                        pair.append(sendFunc.text.decode())
+                        pair.append(lineNum)
+                        self.msgList.append(pair.copy())
+
+
+                for canIDFlags in self.msgList:
+                    id_name = canIDFlags[0]
+                    rtrMode = canIDFlags[2]
+                    senderLine = canIDFlags[5]
+                    if(rtrMode == True):
+                        if(canIDFlags[3] != 0 or (canIDFlags[4].strip() != 'NULL' and canIDFlags[4].strip() != 'nullptr')):
+                            if(("message ID '" + id_name + '\' (' + canIDFlags[1] + ") set the RTR bit to high but it has a data length associated with it in " + senderLine) in self.resultList):
+                                continue
+                            else:
+                                issueStr = "message ID '" + id_name + '\' (' + canIDFlags[1] + ") set the RTR bit to high but it has a data length associated with it in " + senderLine
+                                self.resultList.append(issueStr)
+                                self.lineNums.append(canIDFlags[-1])
+
+            if(cap == "call_expr"):
+                functionText = captures['func_body'][0].text.decode()
+                functionText = functionText.splitlines()
+                for idx in range(0, len(captures[cap])):
+                    pair = []
+                    lineNum = captures[cap][idx].start_point.row + 1
+                    args = captures['arg_list'][idx].text.decode()[1:-1].split(',')
+
+                    if(len(args) != 3):
+                        continue
+
+                    if(('0x40000000' in args[0]) and ('|' in args[0])): 
+                        pair.append(args[0].split('|')[0].strip())
+                        pair.append(True)
+
+                        try:
+                            args[1] = int(args[1].strip())
+                        except:
+                            rangeStart = lineNum - startingLineNum
+                            for lineIDX in range(rangeStart, 0, -1):
+                                textLine = functionText[lineIDX].lower()
+                                if((args[1].strip() in textLine) and ('=' in textLine)):
+                                    dlcSize = textLine.split('=')[1].strip().strip(';')
+                                    args[1] = int(dlcSize)
+                                    break
+                        
+                        pair.append(args[1])
+                        pair.append(args[2].strip())
+                        pair.append(captures['call_expr'][idx].text.decode())
+                        pair.append(lineNum)
+                        self.msgList.append(pair.copy())
+                    elif('|' in args[0]):
+                        pair.append(args[0].split('|')[0].strip())
+                        pair.append(False)
+                        pair.append(None)
+                        pair.append(args[2].strip())
+                        pair.append(captures['call_expr'][idx].text.decode())
+                        pair.append(lineNum)
+                        self.msgList.append(pair.copy())
+                    else:
+                        pair.append(args[0].strip())
+                        pair.append(False) 
+                        pair.append(None)   
+                        pair.append(args[2].strip())
+                        pair.append(captures['call_expr'][idx].text.decode())  
+                        pair.append(lineNum)
+                        self.msgList.append(pair.copy())
+
+                for msg in self.msgList:
+                    if((msg[1] == True) and ((msg[2] != 0) or (msg[3] != 'NULL' and msg[3] != 'nullptr'))):
+                        if((msg[4] + " set the RTR bit to high but it has a data length associated with it.") in self.resultList):
+                            continue
+                        else:
+                            issueStr = msg[4] + " set the RTR bit to high but it has a data length associated with it."
+                            self.resultList.append(issueStr)   
+                            self.lineNums.append(msg[-1])           
+
+            if(cap == "rtr_expr_3"):
+                for idx in range(0, len(captures[cap])):
+                    pair = []
+                    message_name = captures["id_3"][idx].text.decode()
+                    try:
+                        rtr_val = int(captures["rtr_mode_3"][idx].text.decode())
+                    except:
+                        rtr_val = bool(captures["rtr_mode_3"][idx].text.decode())
+                        rtr_val = int(rtr_val)
+                    lineNum = captures["rtr_mode_3"][idx].start_point.row + 1
+                    dlc = int(captures["dlc_3"][idx].text.decode())
+
+                    if(rtr_val == 1):
+                        pair.append(message_name)
+                        pair.append(rtr_val)
+                        pair.append(dlc)
+                        pair.append(lineNum)
+                        self.msgList.append(pair)
+
+                for msg in self.msgList:
+                    if(msg[1] == 1 and (msg[2] != 0 and msg[2] != None)):
+                        if((msg[0] + " set the RTR bit to high but it has a data length associated with it.") in self.resultList):
+                            continue
+                        else:
+                            issueStr = msg[0] + " set the RTR bit to high but it has a data length associated with it."
+                            self.resultList.append(issueStr)           
+                            self.lineNums.append(msg[-1])   
+
+        print('#'*100)
+        print()
+        if(len(self.msgList) == 0):
+            print("No remote transmission requests found.")
+            print()
+            print('#'*100)
+            return 0, ["No remote transmission requests found."]
+        if(len(self.resultList) == 0):
+            print("No issues detected!")
+            print()
+            print('#'*100)
+            return 0, ["No issues detected!"]
+        else:
+            for issue in self.resultList:
+                print(issue)
+            print()
+            print('#'*100)
+            return len(self.resultList), self.resultList
+
+    def checkRTRmode(self, root, libraryAnalyzer):
+        self._reset()
+        issues, messages = self._checkRTRMode(root)
+        return issues, messages, self.lineNums
