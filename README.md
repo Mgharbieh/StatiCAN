@@ -1,17 +1,15 @@
-<h4 align="center">Stati<span style="color:red">CAN</span> - An open source tool for error detection and correction in CAN implementation for Arduino Projects.</h4>
+<p align="center">
+  <br>
+  <a href="StatiCAN"><img src="https://github.com/Mgharbieh/StatiCAN/blob/main/.github/statiCAN.png" alt="StatiCAN" width="1250"></a>
+  <br>
+</p>
+
+<h4 align="center">An open source tool for error detection and correction of CAN implementation on Arduino Projects.</h4>
 
 <p align="center">
   <a href="#key-features">Key Features</a> •
     <a href="#setup-instructions">Setup Instructions</a> •
   <a href="#how-to-use">How to Use</a> 
-</p>
-
-# 
-
-<p align="center">
-  <br>
-  <a href="StatiCAN"><img src="https://github.com/Mgharbieh/StatiCAN/blob/main/.github/example_screenshot.png" alt="StatiCAN" width="1250"></a>
-  <br>
 </p>
 
 ## Key Features
