@@ -118,6 +118,50 @@ class MaskAndFilter():
 
         loopFilterQuery = '''
         (function_definition
+        (function_declarator
+            (identifier) @func_Decl
+            (#not-eq? @func_Decl "setup")
+        )
+        body: (compound_statement) @function.body
+        )
+
+        ; Pattern 1: if statement directly in function body or compound statement
+        (if_statement
+        (condition_clause
+            (binary_expression
+            (call_expression
+                function: (field_expression) @target_func
+                arguments: (argument_list) @args
+            )
+            )
+        )
+        ) @captured_if
+        (#match? @target_func "^(mcp2515|[cC][aA][nN][0-9]*)\\.")
+        (#not-match? @target_func "check[rR]eceive")
+        (#not-match? @target_func "mcp2515\\.sendMessage")
+
+        ; Pattern 2: if statement nested inside while_statement (any depth)
+        (while_statement
+        body: (_
+            (if_statement
+            (condition_clause
+                (binary_expression
+                (call_expression
+                    function: (field_expression) @target_func
+                    arguments: (argument_list) @args
+                )
+                )
+            )
+            ) @captured_if
+        )
+        )
+        (#match? @target_func "^(mcp2515|[cC][aA][nN][0-9]*)\\.")
+        (#not-match? @target_func "check[rR]eceive")
+        (#not-match? @target_func "mcp2515\\.sendMessage")
+        '''
+
+        loopFilterQuery1 = '''
+        (function_definition
             (function_declarator 
                 (identifier) @func_Decl
                     (#not-eq? @func_Decl "setup")
