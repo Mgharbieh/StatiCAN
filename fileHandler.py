@@ -117,6 +117,9 @@ class FileHandler: ### NEED TO ADD FUNCTION TO POPULATE LIST WITH SAVED FILES ##
         env_path = self.root_dir / ".env"
         success, _, self.apiKey = dotenv.set_key(str(env_path), agent, key)
         return success
+    
+    def get_api_key(self):
+        return self.apiKey
 
     def save_file(self, name, data):
         path = self.save_dir / name

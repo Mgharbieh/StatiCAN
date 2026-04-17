@@ -78,7 +78,7 @@ class AISolutionWorker(QRunnable):
                 self.signals.solutionResult.emit(solution)
         except Exception as e:
             print(f"Error in AI Solution worker: {e}")
-            self.signals.solutionResult.emit("An unexpected error occurred while generating the solution. Are you sure you have the selected model installed locally?")
+            self.signals.solutionResult.emit(f"An unexpected error occurred while generating the solution: {e}\n\n Please delete the file and try again.")
 
 class LoaderWorker(QRunnable):
     def __init__(self, fileManager, fileName):
@@ -129,7 +129,8 @@ class AnalysisInterface(QObject):
 
     fileExists = Signal(bool, str)
     fileProcessed = Signal(int)
-    statusMessage = Signal(bool)
+    statusMessage = Signal(bool, str)
+    updateAPIKey = Signal(str)
     fileLoaded = Signal(list, str)
     populateSavedFiles = Signal(str)
     configFileLoaded = Signal(int, int, int, str)
@@ -151,14 +152,18 @@ class AnalysisInterface(QObject):
                 config.get("aiAgent", 0),
                 apiKey or ""
             )
-            self.checker.initAI(config.get("aiAgent", 0))
+            success, message = self.checker.initAI(config.get("aiAgent", 0), self.fileManager)
+            self.updateAPIKey.emit(apiKey)
+            self.statusMessage.emit(success, message)
     
     def updateConfiguration(self, key, value):
         self.fileManager.updateConfig(key, value)
 
     def saveAPIKey(self, agent, key, model):
+        print("update api key signal received", key, model)
         self.fileManager.update_api_key(agent, key)
-        self.checker.initAI(model)
+        success, message = self.checker.initAI(model)
+        self.statusMessage.emit(success, message)
 
     def populateSavedFileList(self):
         saved_files = self.fileManager.loadPreviousScans()
@@ -172,7 +177,6 @@ class AnalysisInterface(QObject):
         
     def analyzeFile(self, path):
         worker = AnalysisWorker(self.checker, self.fileManager,path)
-        worker.signals.statusMessage.connect(self.statusMessage)
         worker.signals.analysisResult.connect(self.fileProcessed)
         self.threadPool.start(worker)
 

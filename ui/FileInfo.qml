@@ -438,7 +438,7 @@ ApplicationWindow {
                     fill: parent
                 }
                 color: "transparent"
-                visible: ((root.aiEnabled === true) && (totalIssuesFound > 0)) ? true : false
+                visible: ((root.aiEnabled === true) && (root.aiError === false) && (totalIssuesFound > 0)) ? true : false
 
                 Rectangle {
                     id: issueFixSolutions
@@ -679,6 +679,50 @@ ApplicationWindow {
                         text: "Enable suggestions: 'Settings>LLM Model'"
                         font.pixelSize: 25
                         color: colorWay.secondaryTextColor
+                    }
+                }
+            }
+
+            Rectangle {
+                id: aiErrorRect
+                width: parent.width //(aiIconImg2.width) 
+                height: parent.height //80
+                color: "transparent"
+                visible: ((root.aiError === true) && (totalIssuesFound > 0)) ? true : false
+                x: (suggestionRect.width - width) / 2
+                y: (suggestionRect.height - height) / 2
+
+                Rectangle {
+                    id: aiIconImg2
+                    width: 100 + (aiTopText2.contentWidth)
+                    height: 100
+                    anchors.centerIn: parent
+                    color: "transparent"
+
+                    Image {
+                        id: aiImg2
+                        anchors {
+                            top: parent.top
+                            left: parent.left
+                        }
+                        width: 100
+                        height: 100
+                        source: colorWay.noAiIconSrc
+                        mipmap: true
+                    }
+
+                    Text {
+                        id: aiTopText2
+                        anchors {   
+                            left: aiImg2.right
+                            verticalCenter: parent.verticalCenter
+                        } 
+                        text: root.aiErrorMessage
+                        font.pixelSize: 20
+                        wrapMode: Text.WordWrap
+                        fontSizeMode: Text.Fit
+                        minimumPixelSize: 12
+                        color: colorWay.textColor
                     }
                 }
             }

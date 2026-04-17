@@ -26,6 +26,8 @@ ApplicationWindow {
     property var sourceCode 
     property string currentFileName: ""
     property bool aiEnabled: false
+    property bool aiError: false
+    property string aiErrorMessage: ""
 
     signal scanFile(string path)
     signal checkFileExists(string name)
@@ -71,8 +73,16 @@ ApplicationWindow {
             }
         } 
 
-        function onStatusMessage(status) {
-            generatingSuggestions = status
+        function onStatusMessage(status, statusMsg) {
+            aiError = !status
+            if(aiError === true) {
+                aiErrorMessage = statusMsg
+                showMessage("./assets/WARN.png", "Error initializing AI agent. Are you sure your API key is correct?")
+            }
+        }
+
+        function onUpdateAPIKey(key) {
+            settingsPage.updateAPIKey(key)
         }
 
         function onFileProcessed(issueCount) {
@@ -767,7 +777,7 @@ ApplicationWindow {
 
         id: messageRect
         anchors.horizontalCenter: parent.horizontalCenter
-        width: parent.width * 0.5
+        width: parent.width * 0.6
         height: 50
         radius: 10
         y: parent.height + 70
@@ -796,13 +806,14 @@ ApplicationWindow {
                 bottom: parent.bottom
                 left: messageIcon.right
                 right: parent.right 
-                margins: 5
+                margins: 2
             }
             color: textColor
             text: ""
             minimumPixelSize: 12
             font.pixelSize: 30
             fontSizeMode: Text.Fit
+            wrapMode: Text.Wrap
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
         }

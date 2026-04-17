@@ -57,11 +57,10 @@ Rules:
 - Focus on providing actionable solutions that directly address the issue messages.
 """
 #IN YOUR SOLUTIONS, ALWAYS REFERENCE THE EXACT CODE AND REFERENCE THE PROPER SNIPPETS AND OBJECT NAMES.
+#Example problem and example solution format:
+#{example}
 HUMAN_PROMPT = """
 Issue category: {issue_type}
-
-Example problem and example solution format:
-{example}
 
 Current issue messages:
 {messages}
@@ -114,15 +113,17 @@ class IssueChecker():
     except Exception as e:
         print(f"An error occurred: {e}")
 
-    def initAI(self, modelNum):
+    def initAI(self, modelNum, fileHandlerObj):
+        print("Initializing AI with model number:", modelNum)
         model = ""
         if(modelNum == 0):
             self.llm = None
-            return
+            return None, "noAI"
         elif(modelNum == 1):
             model = "llama3"
 
-            self.llm = ChatOllama(
+            try:
+                self.llm = ChatOllama(
                 model= "llama3",
                 temperature = 0.7,
                 num_ctx = 8192,
@@ -133,50 +134,56 @@ class IssueChecker():
                 repeat_last_n= 128,
                 seed = 42
                 ).with_structured_output(IssueSolutionList)
+            except Exception as e:
+                return False, f"Error initializing Ollama LLM: {e}"
             
         elif(modelNum == 2):
             model = "deepseek-chat"
 
-            self.llm = ChatDeepSeek(
+            try:
+                self.llm = ChatDeepSeek(
                 model= "deepseek-chat",
                 temperature = 0.7,
-                api_key= os.getenv("API_KEY")
+                api_key= fileHandlerObj.get_api_key()
                 ).with_structured_output(IssueSolutionList)
+            except Exception as e:
+                return False, f"Error initializing DeepSeek LLM: {e}"
             
         elif(modelNum == 3):
             model = "gpt-4o"
 
-            self.llm = ChatOpenAI(
+            try:
+                self.llm = ChatOpenAI(
                 model= "gpt-4o",
                 temperature = 0.7,
-                api_key= os.getenv("API_KEY")
-                ).with_structured_output(IssueSolutionList)
+                api_key= fileHandlerObj.get_api_key()
+                ).with_structured_output(IssueSolutionList)               
+            except Exception as e:
+                return False, f"Error initializing OpenAI LLM: {e}"
 
         elif(modelNum == 4):
             model = "claude-3-7-sonnet-latest"
 
-            self.llm = ChatAnthropic(
+            try:
+                self.llm = ChatAnthropic(
                 model= "claude-3-7-sonnet-latest",
                 temperature = 0.7,
-                api_key= os.getenv("API_KEY")
-                ).with_structured_output(IssueSolutionList)
+                api_key= fileHandlerObj.get_api_key()
+                ).with_structured_output(IssueSolutionList)  
+            except Exception as e:
+                return False, f"Error initializing Anthropic LLM: {e}"
             
         elif(modelNum == 5):
             model = "gemini-2.0-pro"
 
-            self.llm = ChatGoogleGenerativeAI(
+            try:
+                self.llm = ChatGoogleGenerativeAI(
                 model= "gemini-2.0-pro",
                 temperature = 0.7,
-                api_key= os.getenv("API_KEY")
-            ).with_structured_output(IssueSolutionList)
-
-        
-
-        
-
-        
-
-        
+                api_key= fileHandlerObj.get_api_key()
+                ).with_structured_output(IssueSolutionList)
+            except Exception as e:
+                return False, f"Error initializing Google Gemini LLM: {e}"
         
         prompt = ChatPromptTemplate.from_messages([
         ("system", SYSTEM_PROMPT),
@@ -184,6 +191,7 @@ class IssueChecker():
         ])
 
         self.chain = prompt | self.llm
+        return True, "none"
         
 
     def render_solution(self, item: IssueSolution) -> str:

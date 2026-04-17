@@ -491,7 +491,7 @@ Item {
                             }
                             root.configUpdated("aiAgent", llmSelect.currentIndex)
                             apiKeyInput.text = ""
-                            root.storeAPIKey("API_KEY", "", llmSelect.currentIndex)
+                            //root.storeAPIKey("API_KEY", "", llmSelect.currentIndex)
                         }
                     }      
                 }
@@ -587,7 +587,8 @@ Item {
                                 if(apiKeyInput.length > 0) {
                                     console.log("api key edit finished")
                                     console.log(apiKeyInput.text)
-                                    root.storeAPIKey("API_KEY", apiKeyInput.text)    
+                                    root.storeAPIKey("API_KEY", apiKeyInput.text, llmSelect.currentIndex)   
+                                    console.log(llmSelect.currentIndex, apiKeyInput.text) 
                                 }
                             } 
                         } 
@@ -665,5 +666,9 @@ Item {
             viewing = false
             root.focused = true
         }
+    }
+
+    function updateAPIKey(key) {
+        apiKeyInput.text = key
     }
 }
