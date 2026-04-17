@@ -118,7 +118,7 @@ class IssueChecker():
         model = ""
         if(modelNum == 0):
             self.llm = None
-            return None, "noAI"
+            return True, "noAI"
         elif(modelNum == 1):
             model = "llama3"
 
