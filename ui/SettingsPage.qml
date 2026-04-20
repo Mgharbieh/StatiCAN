@@ -578,10 +578,12 @@ Item {
                                 margins: 2
                             }
                             echoMode: TextInput.Password
+                            clip: true
                             selectByMouse: false
                             color: colorWay.textColor
                             font.pixelSize: 20
                             verticalAlignment: Text.AlignVCenter
+                            z: 1
                             onTextEdited: keyLength = apiKeyInput.length
                             onEditingFinished: {
                                 if(apiKeyInput.length > 0) {

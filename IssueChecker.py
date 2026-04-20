@@ -65,6 +65,9 @@ Issue category: {issue_type}
 Current issue messages:
 {messages}
 
+Example problem and example solution format:
+{example}
+
 Source code:
 {source_code}
 """ 
@@ -166,7 +169,7 @@ class IssueChecker():
 
             try:
                 self.llm = ChatAnthropic(
-                model= "claude-3-7-sonnet-latest",
+                model= "claude-sonnet-4-5-20250929",
                 temperature = 0.7,
                 api_key= fileHandlerObj.get_api_key()
                 ).with_structured_output(IssueSolutionList)  
